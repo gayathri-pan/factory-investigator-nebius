@@ -1,0 +1,15 @@
+**
+!.gcloudignore-nebius-dashboard
+!Dockerfile.nebius-dashboard
+!Dockerfile.nebius-event
+!requirements-nebius-dashboard.txt
+!requirements-nebius-event.txt
+!cloudbuild.nebius-dashboard.yaml
+!scripts/
+!scripts/*.py
+!src/
+!src/*.py
+!src/rag/
+!src/rag/*.py
+**/__pycache__/**
+**/.env

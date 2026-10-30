@@ -1,0 +1,8 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'Dockerfile.nebius', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/worker:v1', '.']
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/worker:v1'
+timeout: 1800s
+options:
+  logging: CLOUD_LOGGING_ONLY

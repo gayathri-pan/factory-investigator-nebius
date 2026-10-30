@@ -1,0 +1,9 @@
+fastapi==0.143.2
+uvicorn==0.54.0
+firebase-admin==7.7.0
+google-cloud-run==0.16.2
+google-cloud-firestore==2.34.1
+google-cloud-bigquery==3.46.1
+google-cloud-tasks==2.26.0
+
+google-cloud-storage==3.17.0

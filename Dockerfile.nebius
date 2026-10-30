@@ -1,0 +1,12 @@
+FROM python:3.12-slim-bookworm
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PIP_NO_CACHE_DIR=1 \
+    PYTHONPATH=/app/src TOKENIZERS_PARALLELISM=false OMP_NUM_THREADS=2
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && rm -rf /var/lib/apt/lists/*
+COPY requirements-nebius.txt ./
+RUN pip install --no-cache-dir torch==2.14.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements-nebius.txt && pip check
+COPY scripts/ ./scripts/
+COPY src/rag/ ./src/rag/
+RUN python -m compileall -q scripts src
+CMD ["python", "scripts/nebius_cloud_job.py"]

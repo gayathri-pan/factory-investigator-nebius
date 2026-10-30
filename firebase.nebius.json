@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": "public-nebius",
+    "ignore": ["firebase.nebius.json", "**/.*", "**/node_modules/**"],
+    "rewrites": [
+      {"source": "/api/**", "run": {"serviceId": "nebius-dashboard-api", "region": "asia-south1"}}
+    ],
+    "headers": [{"source": "**", "headers": [{"key": "Cache-Control", "value": "no-store"}]}]
+  },
+  "firestore": {"rules": "firestore.nebius.rules"}
+}

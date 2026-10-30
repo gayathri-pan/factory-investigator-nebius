@@ -7,3 +7,4 @@ artifacts/
 reports/
 data/yearly_experiment_v3/raw/sensors.csv
 task-test.jsongit add .gitignore .python-version pyproject.toml uv.lock README.md
+.env

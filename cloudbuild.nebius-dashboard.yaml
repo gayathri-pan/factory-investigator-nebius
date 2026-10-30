@@ -1,0 +1,11 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'Dockerfile.nebius-dashboard', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/dashboard:v1', '.']
+  - name: gcr.io/cloud-builders/docker
+    args: ['build', '-f', 'Dockerfile.nebius-event', '-t', 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/event-worker:v1', '.']
+images:
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/dashboard:v1'
+  - 'asia-south1-docker.pkg.dev/$PROJECT_ID/nebius-investigator/event-worker:v1'
+options:
+  logging: CLOUD_LOGGING_ONLY
+timeout: 1800s

@@ -1,0 +1,12 @@
+**
+!.gcloudignore-nebius
+!Dockerfile.nebius
+!requirements-nebius.txt
+!cloudbuild.nebius.yaml
+!scripts/
+!scripts/*.py
+!src/
+!src/rag/
+!src/rag/*.py
+**/__pycache__/**
+**/.env

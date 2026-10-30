@@ -1,0 +1,11 @@
+numpy==2.5.3
+pandas==3.0.6
+openai>=3.37.0,<4
+python-dotenv==1.2.4
+google-cloud-storage==3.17.0
+qdrant-client==1.19.1
+sentence-transformers==6.1.0
+transformers==5.17.0
+torch==2.14.0
+langchain-core==1.6.5
+langchain-text-splitters==1.1.2
