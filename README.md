@@ -28,7 +28,7 @@ a new model call.
 
 ## What is new in this edition?
 
-This project builds on our earlier Google Cloud AI Builder Cup prototype.
+This project builds on our earlier Project prototype.
 
 ### Reused foundation
 - Synthetic factory datasets and machine profiles.
