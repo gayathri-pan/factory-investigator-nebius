@@ -1,316 +1,234 @@
-# Factory AI Investigator
+# Factory AI Investigator — Nebius × NVIDIA Edition
 
-A cloud prototype that helps maintenance engineers investigate machine anomaly alerts using sensor observations, operational records, and relevant technical documentation.
+An evidence-seeking assistant for investigating machine anomaly alerts.
 
-**Prototype:** https://project-e64210d0-f317-4050-833.web.app/
+**Demo:** https://factory-investigator-nebius.web.app  
+**Track:** Best Apps and Agents  
+**Model:** `nvidia/nemotron-3-super-120b-a12b`  
+**Inference provider:** Nebius Token Factory
 
-Sign in with Google to explore the dashboard.
+> This prototype uses synthetic factory data and demonstration manuals.
+> It does not confirm physical faults or replace approved maintenance procedures.
 
-> This project uses synthetic factory data and demonstration manuals. Model detections are not confirmed equipment failures. Generated reports support human review and do not authorize maintenance actions.
+## What it does
 
-## Problem
+Factory AI Investigator helps users inspect historical anomaly events across
+five machines, M-101 through M-105.
 
-An anomaly alert identifies a suspicious sensor window, but engineers still need to determine what happened and what to investigate next.
+Users can:
+- Inspect sensor readings and recorded detection events.
+- Open saved cloud demonstrations.
+- Request a background investigation.
+- Inspect tool activity and cited evidence.
+- Read observations, unresolved gaps and recommended evidence.
+- Save shared review notes.
 
-Relevant evidence is scattered across sensor readings, machine logs, maintenance records, historical incidents, and technical manuals. Factory AI Investigator brings this information together in an investigation report with supporting references and explicit evidence gaps.
+Google sign-in is required. Saved demonstrations can be viewed without
+a new model call.
 
-## Features
+## What is new in this edition?
 
-- Historical event exploration for five machines, M-101 through M-105.
-- Recorded sensor charts and event-window summaries.
-- Scoped machine logs and earlier maintenance and incident records.
-- On-demand investigation of a selected historical event.
-- Accelerated live simulation for the M-103 conveyor.
-- Automatic investigation after the first replay alert.
-- Machine-aware retrieval of technical manual passages.
-- Evidence assessment before report generation.
-- Saved reports with manual references and missing-information explanations.
-- Shared review notes with Reviewed and Needs follow-up dispositions.
+This project builds on our earlier Google Cloud AI Builder Cup prototype.
 
-Google sign-in identifies contributors. It does not verify their professional qualifications.
+### Reused foundation
+- Synthetic factory datasets and machine profiles.
+- Frozen XGBoost anomaly classifier and feature engineering.
+- Machine-aware manual retrieval using BGE embeddings and Qdrant.
+- Dashboard design and cloud deployment experience.
 
-## How It Works
+### Added for the Nebius × NVIDIA submission
+- NVIDIA Nemotron inference through Nebius Token Factory.
+- Model-selected evidence requests and iterative reassessment.
+- Generalized evidence tools for all five machines.
+- Python-enforced machine scope and evidence cutoff.
+- Validated observation IDs and follow-up selections.
+- Bounded execution with saved investigation traces.
+- Structured reports with clickable evidence sources.
+- A separate cloud deployment and dashboard integration.
 
-### Detection
+The earlier edition used Gemini. The investigation workflow submitted
+in this edition uses Nemotron.
 
-The final XGBoost classifier uses 96 engineered features from five sensor signals:
+## How the investigation works
 
-- Temperature
-- Vibration
-- Pressure
-- RPM
-- Power consumption
+1. Resolve the selected machine and investigation cutoff.
+2. Compute a trigger-window versus reference-window comparison in Python.
+3. Ask Nemotron to select observations and permitted evidence requests.
+4. Execute the selected Python tools.
+5. Reassess the accumulated evidence and remaining gaps.
+6. Stop within the execution limit and generate a validated report.
+7. Save the report and trace for dashboard inspection.
 
-Each window contains 30 one-minute readings. Scoring advances in five-minute steps.
+The agent permits up to four additional evidence-tool attempts after the
+initial comparison. This is an execution limit, not a dollar-credit limit.
 
-The validation-selected detection threshold is:
+## Evidence tools
 
-`0.25487801432609558`
-
-Consecutive flagged windows with start times five minutes apart form a detection event. Events are grouped separately by machine, model version, inference run, and dataset partition.
-
-### Investigation
-
-1. Select a historical event or detect the first alert during replay.
-2. Build event-specific context from sensor observations and operational records.
-3. Retrieve relevant machine-specific and general manual passages.
-4. Assess evidence relevance and sufficiency.
-5. Generate an investigation report using Gemini on Vertex AI.
-6. Validate report structure and evidence references.
-7. Store the report in BigQuery and verify it by reading it back.
-8. Update investigation status in Firestore.
-9. Let users inspect the evidence and save review notes.
-
-Structural validation does not independently establish factual correctness or root cause.
-
-### Investigation Scope
-
-For live replay, the initial investigation uses a frozen first-alert snapshot. Later readings and event updates are excluded from that initial report.
-
-For historical investigation, the context covers the complete selected grouped event.
-
-Maintenance and incident context includes earlier calendar dates. The source records lack recorded-at timestamps, so historical availability cannot be fully established.
-
-## Google Cloud Architecture
-
-| Service | Purpose |
+| Tool | Purpose |
 |---|---|
-| Firebase Hosting | Dashboard hosting |
-| Firebase Authentication | Google sign-in |
-| Cloud Run | Dashboard API and private investigation worker |
-| Cloud Run Jobs | Batch inference and sensor replay |
-| Cloud Tasks | Authenticated asynchronous investigation requests |
-| BigQuery | Operational datasets, predictions, events, and reports |
-| Firestore | Replay observations, progress, event state, and reviews |
-| Cloud Storage | Model files and versioned retrieval artifacts |
-| Vertex AI | Gemini evidence assessment and report generation |
-| Cloud Build | Container builds |
-| Artifact Registry | Container image storage |
-| Cloud Logging | Application and execution logs |
+| `compare_sensor_windows` | Calculate reference and trigger statistics |
+| `inspect_trigger_readings` | Inspect individual trigger-window readings |
+| `get_prior_calibration_records` | Retrieve earlier calibration records |
+| `get_prior_machine_logs` | Search logs within the stated scope |
+| `search_machine_manuals` | Retrieve machine-specific and general passages |
 
-Python orchestrates context construction, retrieval, evidence assessment, generation, validation, and storage.
+Python calculates numerical facts. Nemotron selects permitted IDs and
+decides which available evidence to request.
 
-The replay continues independently while the investigation worker processes the alert.
+Empty search results are preserved. Missing records do not establish
+that nothing happened.
 
-## Retrieval
+## Architecture
 
-- Embedding model: `BAAI/bge-small-en-v1.5`
-- Embedding dimension: 384
-- Similarity: cosine
-- Vector store: Qdrant
-- Exported knowledge base: 162 manual chunks
-- Default chunk size: 500 characters
-- Chunk overlap: 100 characters
-- Default retrieved evidence: up to three passages
+- **Detection:** frozen XGBoost classifier; 30-minute windows; 96 features.
+- **Reasoning:** NVIDIA Nemotron through Nebius Token Factory.
+- **Retrieval:** BGE embeddings and Qdrant.
+- **API:** FastAPI on Google Cloud Run.
+- **Background execution:** Cloud Run Jobs.
+- **Historical data:** BigQuery.
+- **Artifacts, reports and traces:** Cloud Storage.
+- **Progress and shared reviews:** Firestore.
+- **Frontend and authentication:** Firebase Hosting and Google sign-in.
+- **Credentials:** Google Secret Manager for deployed inference access.
 
-The cloud worker downloads versioned artifacts and restores Qdrant in memory. It does not use a persistent managed Qdrant server.
+Application hosting uses Google Cloud. Runtime model inference uses Nebius.
+No Nebius GPU instances or Serverless Jobs are used.
 
-Retrieval filters restrict evidence to the requested machine and eligible general documentation.
-
-## Dataset
-
-The synthetic V3 dataset is under:
-
-`data/yearly_experiment_v3/raw/`
-
-| File | Contents |
-|---|---|
-| `factory_machines.csv` | Machine metadata |
-| `sensors.csv.gz` | Compressed sensor observations |
-| `machine_logs.csv` | Machine logs |
-| `maintenance_history.csv` | Maintenance records |
-| `historical_incidents.csv` | Historical incident records |
-| `scenario_labels.csv` | Synthetic scenario annotations for training and evaluation |
-
-Scenario annotations are not inputs to replay prediction or the investigation query.
-
-Extract the sensor file before running scripts that expect `sensors.csv`:
-
-```bash
-python -c "import gzip,shutil; from pathlib import Path; p=Path('data/yearly_experiment_v3/raw/sensors.csv.gz'); f=gzip.open(p,'rb'); o=p.with_suffix('').open('wb'); shutil.copyfileobj(f,o); f.close(); o.close()"
-```
-
-The replay input is:
-
-`data/replay/m103_demo_v1.csv`
-
-It contains raw observations without scenario labels or expected predictions.
-
-Synthetic manuals are under `data/manuals/`. They are demonstration documents, not verified OEM instructions.
-
-## Model and Evaluation
-
-Final model artifacts are under:
-
-`models/xgboost_experiment_30m_v3_dataset/`
-
-- `xgboost_binary_v3_dataset.json`
-- `feature_columns_v3_dataset.json`
-- `validation_threshold_v3_dataset.json`
-
-Evaluation files are under:
-
-`data/xgboost_experiment_30m_v3_dataset/results/`
-
-They include test and validation metrics, scenario detection results, and overall feature importance.
-
-Overall feature importance does not explain the contribution of features to an individual event.
-
-### Batch Processing Results
-
-| Machine | Scored windows | Flagged windows | Grouped events |
-|---|---:|---:|---:|
-| M-101 | 105,105 | 637 | 99 |
-| M-102 | 105,105 | 630 | 97 |
-| M-103 | 105,105 | 714 | 95 |
-| M-104 | 105,105 | 732 | 99 |
-| M-105 | 105,105 | 782 | 94 |
-| **Total** | **525,525** | **3,495** | **484** |
-
-These totals cover all scored dataset partitions. They are processing volumes, not held-out accuracy results or counts of confirmed failures.
-
-### Replay Feature Parity
-
-Ten sampled held-out windows across the five machines were checked against features recomputed from raw observations.
-
-- Features matched within numerical tolerance.
-- Model probabilities and threshold decisions matched.
-- Largest observed feature difference was approximately `5.6e-11`.
-
-This sampled check verifies consistency between the two feature paths. It is not an exhaustive correctness or model accuracy claim.
-
-## Live Demonstration
-
-The configured M-103 scenario uses 100 prerecorded synthetic readings.
-
-- First 30 readings preload the rolling window.
-- Remaining 70 readings arrive at a target rate of one simulated minute per second.
-- The model scores 15 windows.
-- Eight consecutive flagged windows form one event.
-- The first alert automatically queues an investigation.
-
-The demonstration uses actual feature computation and model inference. It does not display preassigned predictions.
-
-A later unflagged window ends the flagged sequence; it does not establish physical recovery.
-
-## Repository Structure
+## Repository structure
 
 ```text
-src/
-  anomaly_detection/   Final preprocessing, training, evaluation, batch inference
-  investigation/       Context, evidence gate, reports, worker, report storage
-  rag/                 Manual loading, embeddings, vector store, retrieval
-  dashboard_api.py     Authenticated dashboard backend
-
-scripts/               Replay, artifact export, and validation utilities
-public/                Dashboard assets
-models/                Final XGBoost artifacts
-data/manuals/          Synthetic technical documentation
-data/replay/           Small replay dataset
-data/yearly_experiment_v3/raw/
-                       Synthetic source dataset
+public-nebius/          Dashboard
+src/nebius_*           API and shared validation
+src/rag/               Manual loading and retrieval
+scripts/               Evidence tools, agent loop and report generation
+deploy/                Setup and deployment scripts
+data/manuals/          Synthetic reference documents
+data/nebius/           Selected demonstration cases
 ```
 
-## Local Setup
+Older prototype files remain for provenance. Use the Nebius-specific
+configuration files for this edition.
+
+## Local setup
 
 Requirements:
-
 - Python 3.12
 - uv
-- Google Cloud CLI for authenticated cloud operations
-- Firebase CLI for Hosting deployment
+- Nebius Token Factory API access
+- Google Cloud and Firebase CLIs for deployment
 
-Install project dependencies:
-
-```bash
+```powershell
 uv sync
 ```
 
-For PowerShell, expose the source packages:
-
-```powershell
-$env:PYTHONPATH = "$PWD\src"
-```
-
-For Bash:
-
-```bash
-export PYTHONPATH="$PWD/src"
-```
-
-Authenticate local application credentials when using cloud-backed modules:
-
-```bash
-gcloud auth application-default login
-```
-
-Example environment configuration:
+Create an untracked `.env` file:
 
 ```dotenv
-GOOGLE_CLOUD_PROJECT=YOUR_PROJECT_ID
-GOOGLE_CLOUD_LOCATION=asia-south1
-BIGQUERY_LOCATION=asia-south1
-GOOGLE_GENAI_USE_VERTEXAI=true
-LLM_MODEL=gemini-3.5-flash
-DASHBOARD_UID=YOUR_OWNER_FIREBASE_UID
+NEBIUS_API_KEY=your_key_here
+NEBIUS_BASE_URL=https://api.tokenfactory.us-central1.nebius.com/v1/
+NEBIUS_MODEL=nvidia/nemotron-3-super-120b-a12b
 ```
 
-Additional replay, Cloud Tasks, and artifact settings depend on the relevant script configuration.
+Never commit API keys, service-account credentials or `.env`.
 
-Never commit `.env`, service-account keys, access tokens, or application credentials.
+### Offline tool checks
 
-## Validation Commands
-
-Check replay feature parity:
-
-```bash
-uv run python scripts/check_replay_feature_parity.py
+```powershell
+uv run python scripts/check_multimachine_tools.py
 ```
 
-Inspect the local replay:
+These checks use synthetic fixtures. They do not establish live inference,
+retrieval quality or cloud deployment correctness.
 
-```bash
-uv run python scripts/inspect_replay_segment.py
+### Local investigation
+
+After provisioning the required datasets and retrieval artifacts:
+
+```powershell
+uv run python scripts/test_sensor_tool.py
 ```
 
-Run cloud-backed historical investigation:
+Inspect the script's CLI options before selecting a different machine or cutoff:
 
-```bash
-uv run python -m investigation.cloud_investigator --event-id YOUR_EVENT_ID
+```powershell
+uv run python scripts/test_sensor_tool.py --help
 ```
 
-Cloud-backed commands require provisioned resources, matching artifacts, and appropriate IAM permissions. They may incur charges.
+## Data and retrieval artifacts
+
+Large datasets and embedding-model archives are excluded from Git.
+
+The current workflow requires:
+- `data/yearly_experiment_v3/raw/sensors.csv`
+- `data/yearly_experiment_v3/raw/maintenance_history.csv`
+- `data/yearly_experiment_v3/raw/machine_logs.csv`
+- `artifacts/rag/v1/manifest.json`
+- `artifacts/rag/v1/manual_points.jsonl.gz`
+- `artifacts/rag/v1/embedding_model.tar.gz`
+
+Cloud deployment also uses historical BigQuery tables and selected cases.
+
+The supplied deployment scripts reference the project's provisioned resources.
+They are not a one-command installation into an arbitrary new project.
+An independent public data/artifact provisioning route is not yet packaged.
+The hosted demonstrations provide access to existing results.
 
 ## Deployment
 
-The repository includes separate Dockerfiles and build configurations for:
+Review project IDs, service accounts, bucket names and configuration before
+running deployment scripts.
 
-- Batch inference
-- Replay execution
-- Investigation worker
-- Dashboard API
+The Nebius edition uses the separate project `factory-investigator-nebius`.
 
-Deployment requires configuring the project, bucket, BigQuery tables, Firestore database, Firebase Authentication, Cloud Tasks queue, and service-account permissions.
+```powershell
+.\deploy\setup_nebius.ps1
+.\deploy\set_nebius_secret.ps1
+.\deploy\setup_nebius_dashboard.ps1
+uv run python deploy/copy_history_nebius.py
+.\deploy\deploy_nebius_dashboard.ps1
+firebase deploy --only "hosting,firestore:rules" --config firebase.nebius.json --project factory-investigator-nebius
+```
 
-Existing deployment files contain project-specific values. Review and replace these before deploying into another project.
+These commands create or modify cloud resources and may incur charges.
+Google sign-in must be enabled in Firebase Authentication.
 
-The investigation worker remains private. Cloud Tasks invokes it using an authenticated service account.
+## Verification completed
 
-Browser clients read permitted replay data and use the authenticated dashboard API for application actions.
+- Offline multi-machine tool checks passed.
+- Cloud batch execution produced reports and traces for all five machines.
+- The saved M-101 dashboard report was inspected.
+- Independent CSV checks reproduced its reported sensor differences.
+- Calibration filtering, log scope and manual passages were checked for M-101.
+
+These checks are not a broad report-quality benchmark.
 
 ## Limitations
 
-- Evaluation uses synthetic data.
-- Live simulation currently supports M-103 only.
-- Sensor units, equipment mappings, and operating limits are not established.
-- Historical incidents suggest possible explanations rather than proving the current cause.
-- Report validation checks structure and references, not factual correctness.
-- Retries can repeat generation work before a report is stored.
-- Shared reviews are editable feedback, not an immutable audit trail.
-- Real-factory accuracy, investigation time savings, and downtime reduction have not been measured.
+- Operational data is synthetic.
+- Manuals are not verified OEM instructions.
+- Sensor units, locations and operating limits are unverified.
+- A reference window is not a verified healthy baseline.
+- Citation-ID validation does not establish claim support.
+- No controlled model comparison or measured maintenance savings is claimed.
+- Historical incidents are not currently retrieved by an agent tool.
+- Live sensor replay from the earlier edition is not connected here.
+- Shared reviews do not establish professional qualifications or confirm faults.
 
-## Author
+## Next steps
 
-Gayathri Mahesh
+- Complete and document fresh dashboard-triggered investigation testing.
+- Evaluate the agent against a fixed retrieval baseline.
+- Measure latency, token usage and evidence coverage.
+- Add operating-state and historical-incident tools.
+- Improve claim-level evidence validation.
+- Test with verified documentation and maintenance-engineer feedback.
 
-Built for the AI Builder Cup.
+## AI assistance
+
+Runtime investigation decisions
+use NVIDIA Nemotron through Nebius Token Factory.
+
+## License
+
+See `LICENSE`. Third-party models, libraries and services retain their
+respective licenses and terms.
